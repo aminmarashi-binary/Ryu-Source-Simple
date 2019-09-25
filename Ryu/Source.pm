@@ -17,6 +17,7 @@ sub new {
     return bless $self, $class;
 }
 
+# Create a new instance of source, mostly used internally
 sub create_source {
     my ($self, %args) = @_;
 
