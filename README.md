@@ -6,7 +6,7 @@ A simple implementation of the Ryu::Source for educational purposes
 
 An over-simplified version of [Ryu::Source](https://metacpan.org/pod/Ryu::Source).
 
-We're going to ignore all the bells and whisles that make `Ryu::Source` work
+We're going to ignore all the bells and whistles that make `Ryu::Source` work
 in real world application and implement a simplified version to help us understand
 how the basics of the library works.
 
