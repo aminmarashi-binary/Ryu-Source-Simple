@@ -4,7 +4,7 @@ use strict;
 use warnings;
 no indirect;
 
-# Add support for IO::Async::Notifier
+# TODO: Add support for IO::Async::Notifier
 
 # Just save all the args in $self
 sub new {
