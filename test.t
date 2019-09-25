@@ -70,7 +70,7 @@ subtest 'Mapped items are returned' => sub {
 
     my @expected = map "#" . $_, 1..5;
 
-    is_deeply \@items, \@expected, 'Are items are now string';
+    is_deeply \@items, \@expected, 'Are items are now prefixed';
 };
 
 subtest 'Filter returns the filtered items' => sub {
@@ -110,6 +110,8 @@ subtest 'Combined sources work' => sub {
 
     is_deeply \@items, [
         # Put the expected items here
+        [5, 0],
+        [3, 1],
     ], 'Make me pass';
 };
 
@@ -122,13 +124,16 @@ subtest 'Combined sources work' => sub {
         ->each(sub {push @items, shift})
         ->skip(1)
         ->distinct
-        ->with_index;
+        ->with_index
+        ->each(sub { push @items, shift });
 
     my @expected = (1, 2, 2, 4, 2, 4, 5, 3);
     $source->emit($_) for @expected;
 
+    # diag explain \@items;
     is_deeply \@items, [
         # Put the expected items here
+        1, 5, [5, 0], 3, [3, 1]
     ], 'Make me pass';
 };
 

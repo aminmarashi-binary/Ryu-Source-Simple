@@ -13,7 +13,7 @@ sub new {
     # Required to make the source finished (not covered in the first session)
     # defined $args{new_future} or die 'Please pass the new_future function';
 
-    my $self = { %args };
+    my $self = { callbacks => [], %args };
     return bless $self, $class;
 }
 
@@ -26,37 +26,91 @@ sub create_source {
 
 # Emit new items to the source
 sub emit {
-    shift;
+    my ($self, $item) = @_;
+
+    $_->($item) for $self->{callbacks}->@*;
 }
 
 # Listen on items reaching the source
+# ->each(sub {warn shift})
 sub each {
-    shift;
+    my ($self, $code) = @_;
+
+    push $self->{callbacks}->@*, $code;
+
+    return $self;
 }
 
 # Skip a few items from the source
 sub skip {
-    shift;
+    my ($self, $count) = @_;
+
+    my $new_source = $self->create_source();
+
+    $self->each(sub {
+        my $item = shift;
+        $new_source->emit($item) unless $count-- > 0;
+    });
+
+    return $new_source;
 }
 
 # Returns items and their index: [$item, $idx]
 sub with_index {
-    shift;
+    my ($self) = @_;
+
+    my $new_source = $self->create_source();
+
+    my $count = 0;
+    $self->each(sub {
+        my $item = shift;
+        $new_source->emit([ $item, $count++ ]);
+    });
+
+    return $new_source;
 }
 
 # Similar to map function, changes a received item based on a coderef
 sub map {
-    shift;
+    my ($self, $code) = @_;
+
+    my $new_source = $self->create_source();
+
+    $self->each(sub {
+        my $item = shift;
+        $new_source->emit($code->($item));
+    });
+
+    return $new_source;
 }
 
 # Filter items based on a regex
 sub filter {
-    shift;
+    my ($self, $code) = @_;
+
+    my $new_source = $self->create_source();
+
+    $self->each(sub {
+        my $item = shift;
+        $new_source->emit($item) if $code->($item);
+    });
+
+    return $new_source;
 }
 
 # Return distinct values, duplicate values are dropped
 sub distinct {
-    shift;
+    my ($self, $code) = @_;
+
+    my $new_source = $self->create_source();
+
+    my %seen;
+    $self->each(sub {
+        my $item = shift;
+        $new_source->emit($item) unless $seen{$item}++;
+    });
+
+    return $new_source;
 }
 
 #############################################################################
