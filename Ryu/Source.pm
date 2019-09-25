@@ -25,30 +25,37 @@ sub create_source {
 
 # Emit new items to the source
 sub emit {
+    shift;
 }
 
 # Listen on items reaching the source
 sub each {
+    shift;
 }
 
 # Skip a few items from the source
 sub skip {
+    shift;
 }
 
 # Returns items and their index: [$item, $idx]
 sub with_index {
+    shift;
 }
 
 # Similar to map function, changes a received item based on a coderef
 sub map {
+    shift;
 }
 
 # Filter items based on a regex
 sub filter {
+    shift;
 }
 
 # Return distinct values, duplicate values are dropped
 sub distinct {
+    shift;
 }
 
 #############################################################################
