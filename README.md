@@ -18,4 +18,6 @@ make
 
 ## Session 2
 
-Add `IO::Async` and make things work properly.
+- [ ] Add `IO::Async` and make things work properly.
+- [ ] Handle references gracefully
+- [ ] Handle finishing the sources properly
