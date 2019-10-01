@@ -25,6 +25,18 @@ subtest 'Initialize' => sub {
 subtest 'Items emitted are dropped if no one is listening' => async sub {
     my $source = create_source();
 
+    $loop->later(sub { $source->finish });
+
+    is $source->completed->state, 'pending', 'Source has not completed yet';
+
+    await $loop->delay_future(after => 0.001);
+
+    is $source->completed->state, 'done', 'Source has completed';
+};
+
+subtest 'Items emitted are dropped if no one is listening' => async sub {
+    my $source = create_source();
+
     $source->emit('item');
 
     my $result_f = $source->first->as_list;
@@ -59,9 +71,7 @@ subtest 'Items are returned with their indexes' => async sub {
 
     $loop->later(sub { $source->emit($_) for 1..5; $source->finish });
 
-    my @items = await $source->with_index
-    ->take(5) # with_index doesn't finish without this
-    ->as_list;
+    my @items = await $source->with_index->as_list;
 
     is_deeply \@items, [map [$_, $_ - 1], 1..5], 'Items match expectation';
 };
@@ -95,9 +105,7 @@ subtest 'Distinct numbers are seen' => async sub {
 
     $loop->later(sub { $source->emit($_) for 1, 2, 2, 3, 4, 2, 4, 5, 3; $source->finish });
 
-    my @items = await $source->distinct
-    ->take(5) # Needs this to finish
-    ->as_list;
+    my @items = await $source->distinct->as_list;
 
     is_deeply \@items, [1..5], 'All the numbers from 1 to 5 are seen once';
 };
@@ -112,7 +120,6 @@ subtest 'Combined sources work' => async sub {
         ->skip(1)
         ->distinct
         ->with_index
-        ->take(2)
         ->as_list;
 
     is_deeply \@items, [
@@ -135,7 +142,6 @@ subtest 'Combined sources work two each' => async sub {
         ->distinct
         ->with_index
         ->each(sub { push @items, shift })
-        ->take(2)
         ->as_list;
 
 

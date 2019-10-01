@@ -11,7 +11,7 @@ sub new {
     my ($class, %args) = @_;
 
     # Required to make the source finished (not covered in the first session)
-    # defined $args{new_future} or die 'Please pass the new_future function';
+    die 'Please pass the new_future function' unless defined $args{new_future};
 
     my $self = { callbacks => [], %args };
     return bless $self, $class;
@@ -21,7 +21,14 @@ sub new {
 sub create_source {
     my ($self, %args) = @_;
 
-    return __PACKAGE__->new(%args);
+    my $new_source = __PACKAGE__->new(
+        new_future => $self->{new_future},
+        %args,
+    );
+
+    push $self->{children}->@*, $new_source;
+
+    return $new_source;
 }
 
 # Emit new items to the source
@@ -117,20 +124,71 @@ sub distinct {
 # Need `completed` implementation. Will talk about them in the next session #
 #############################################################################
 
+# create a new future using the function in Ryu::Async
+sub new_future {
+    my ($self, %args) = @_;
+
+    my $new_future = $self->{new_future} or die 'Please use Ryu::Async->source';
+
+    return $new_future->(%args);
+}
+
 # Returns a future which is done when the source is completed
 sub completed {
+    my $self = shift;
+
+    $self->{completed} //= $self->new_future(label => 'completed')
+    ->on_ready(sub {
+        $self->cleanup;
+    });
+}
+
+# Clean things up after finish
+sub cleanup {
+    my $self = shift;
+
+    $_->finish for $self->{children}->@*;
 }
 
 # Completes the source
 sub finish {
-}
+    my $self = shift;
 
-# Take n items from the source
-sub take {
+    $self->completed->done;
 }
 
 # Take first item from the source
 sub first {
+    my $self = shift;
+
+    my $new_source = $self->create_source();
+
+    my %seen;
+    $self->each(sub {
+        my $item = shift;
+        $new_source->emit($item);
+        $self->finish;
+    });
+
+    return $new_source;
+}
+
+# Returns all items as a list
+sub as_list {
+    my $self = shift;
+
+    my $new_source = $self->create_source();
+
+    my @items;
+    $self->each(sub {
+        push @items, shift;
+    });
+
+    return $self->completed->transform(done => sub {@items});
+}
+
+# Take n items from the source
+sub take {
 }
 
 # Count the numbers received
@@ -139,14 +197,6 @@ sub count {
 
 # Return an accumulative result, similar to reduce in List::Util
 sub reduce {
-}
-
-# Returns all items as an array ref
-sub as_arrayref {
-}
-
-# Every good source should clean after itself
-sub cleanup {
 }
 
 1;

@@ -1,2 +1,2 @@
 test:
-	prove -v -I. session-?.t
+	prove -v -I. -Ilib session-?.t

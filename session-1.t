@@ -4,7 +4,7 @@ no indirect;
 
 
 use Test::More;
-use Ryu::Source;
+use Ryu::Session1;
 
 subtest 'Initialize' => sub {
     my $source = Ryu::Source->new;
