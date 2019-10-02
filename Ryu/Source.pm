@@ -244,20 +244,6 @@ sub count {
     return $new_source;
 }
 
-sub remove_from_array {
-    my ($array, $item) = @_;
-
-    if ($array->@*) {
-        for my $i (0..$array->$#*) {
-            if ($array->[$i] == $item) {
-                return splice $array->@*, $i, 1;
-            }
-        }
-    }
-
-    return undef;
-}
-
 # nevermind this, we will use it later (instead of extract_by)
 sub remove_from_array {
     my ($array, $item) = @_;
