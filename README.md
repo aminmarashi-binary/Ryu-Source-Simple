@@ -18,4 +18,12 @@ make
 
 ## Session 2
 
-Add `IO::Async` and make things work properly.
+- [ ] Add `IO::Async` and make things work properly.
+- [ ] Handle references gracefully
+- [ ] Handle finishing the sources properly
+
+## Session 3
+
+- [ ] Some Reactive examples
+- [ ] How to use in production code
+- [ ] How to use for testing

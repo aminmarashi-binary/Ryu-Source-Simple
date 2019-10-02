@@ -11,22 +11,17 @@ sub new {
     my ($class, %args) = @_;
 
     # Required to make the source finished (not covered in the first session)
-    die 'Please pass the new_future function' unless defined $args{new_future};
+    # defined $args{new_future} or die 'Please pass the new_future function';
 
     my $self = { callbacks => [], %args };
     return bless $self, $class;
 }
 
 # Create a new instance of source, mostly used internally
-sub chained {
+sub create_source {
     my ($self, %args) = @_;
 
-    my $new_source = __PACKAGE__->new(
-        new_future => $self->{new_future},
-        %args,
-    );
-
-    return $new_source;
+    return __PACKAGE__->new(%args);
 }
 
 # Emit new items to the source
@@ -50,7 +45,7 @@ sub each {
 sub skip {
     my ($self, $count) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->create_source();
 
     $self->each(sub {
         my $item = shift;
@@ -64,7 +59,7 @@ sub skip {
 sub with_index {
     my ($self) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->create_source();
 
     my $count = 0;
     $self->each(sub {
@@ -79,7 +74,7 @@ sub with_index {
 sub map {
     my ($self, $code) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->create_source();
 
     $self->each(sub {
         my $item = shift;
@@ -93,7 +88,7 @@ sub map {
 sub filter {
     my ($self, $code) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->create_source();
 
     $self->each(sub {
         my $item = shift;
@@ -107,7 +102,7 @@ sub filter {
 sub distinct {
     my ($self, $code) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->create_source();
 
     my %seen;
     $self->each(sub {
@@ -124,54 +119,34 @@ sub distinct {
 
 # Returns a future which is done when the source is completed
 sub completed {
-    Future->done
-}
-
-# Clean things up after finish
-sub cleanup {
 }
 
 # Completes the source
 sub finish {
 }
 
-# Completes the source
-sub cancel {
+# Take n items from the source
+sub take {
 }
 
 # Take first item from the source
 sub first {
-    shift
-}
-
-# Returns all items as a list
-sub as_list {
-    Future->done
-}
-
-# Take n items from the source
-sub take {
-    shift
 }
 
 # Count the numbers received
 sub count {
-    shift
 }
 
-# nevermind this, we will use it later (instead of extract_by)
-sub remove_from_array {
-    my ($array, $item) = @_;
+# Return an accumulative result, similar to reduce in List::Util
+sub reduce {
+}
 
-    if ($array->@*) {
-        for my $i (0..$array->$#*) {
-            if ($array->[$i] == $item) {
-                return splice $array->@*, $i, 1;
-            }
-        }
-    }
+# Returns all items as an array ref
+sub as_arrayref {
+}
 
-    return undef;
+# Every good source should clean after itself
+sub cleanup {
 }
 
 1;

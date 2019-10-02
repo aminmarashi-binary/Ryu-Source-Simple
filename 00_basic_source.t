@@ -4,7 +4,7 @@ no indirect;
 
 
 use Test::More;
-use Ryu::Source;
+use Ryu::Session1;
 
 subtest 'Initialize' => sub {
     my $source = Ryu::Source->new;
@@ -115,7 +115,7 @@ subtest 'Combined sources work' => sub {
     ], 'Make me pass';
 };
 
-subtest 'Combined sources work' => sub {
+subtest 'Combined sources work two each' => sub {
     my $source = Ryu::Source->new;
 
     my @items;
