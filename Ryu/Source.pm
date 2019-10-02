@@ -21,12 +21,7 @@ sub new {
 sub create_source {
     my ($self, %args) = @_;
 
-    my $new_source = __PACKAGE__->new(
-        new_future => $self->{new_future},
-        %args,
-    );
-
-    push $self->{children}->@*, $new_source;
+    my $new_source = __PACKAGE__->new(%args);
 
     return $new_source;
 }
@@ -126,65 +121,26 @@ sub distinct {
 
 # create a new future using the function in Ryu::Async
 sub new_future {
-    my ($self, %args) = @_;
-
-    my $new_future = $self->{new_future} or die 'Please use Ryu::Async->source';
-
-    return $new_future->(%args);
 }
 
 # Returns a future which is done when the source is completed
 sub completed {
-    my $self = shift;
-
-    $self->{completed} //= $self->new_future(label => 'completed')
-    ->on_ready(sub {
-        $self->cleanup;
-    });
 }
 
 # Clean things up after finish
 sub cleanup {
-    my $self = shift;
-
-    $_->finish for $self->{children}->@*;
 }
 
 # Completes the source
 sub finish {
-    my $self = shift;
-
-    $self->completed->done;
 }
 
 # Take first item from the source
 sub first {
-    my $self = shift;
-
-    my $new_source = $self->create_source();
-
-    my %seen;
-    $self->each(sub {
-        my $item = shift;
-        $new_source->emit($item);
-        $self->finish;
-    });
-
-    return $new_source;
 }
 
 # Returns all items as a list
 sub as_list {
-    my $self = shift;
-
-    my $new_source = $self->create_source();
-
-    my @items;
-    $self->each(sub {
-        push @items, shift;
-    });
-
-    return $self->completed->transform(done => sub {@items});
 }
 
 # Take n items from the source
@@ -193,10 +149,6 @@ sub take {
 
 # Count the numbers received
 sub count {
-}
-
-# Return an accumulative result, similar to reduce in List::Util
-sub reduce {
 }
 
 1;
