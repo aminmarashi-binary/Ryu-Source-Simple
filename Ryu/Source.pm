@@ -4,6 +4,8 @@ use strict;
 use warnings;
 no indirect;
 
+use Scalar::Util;
+
 # TODO: Add support for IO::Async::Notifier
 
 # Just save all the args in $self
@@ -23,8 +25,13 @@ sub chained {
 
     my $new_source = __PACKAGE__->new(
         new_future => $self->{new_future},
+        parent     => $self,
         %args,
     );
+
+    Scalar::Util::weaken($new_source->{parent});    
+
+    push $self->{children}->@*, $new_source;
 
     return $new_source;
 }
@@ -46,16 +53,30 @@ sub each {
     return $self;
 }
 
+sub each_while_source {
+    my ($self, $code, $new_source, %options) = @_;
+
+    $self->each($code);
+
+    $self->completed->on_ready(sub {
+        my $completed = shift;
+        $options{cleanup}->() if exists $options{cleanup};
+        $completed->on_ready($new_source->completed);
+        remove_from_array($self->{callbacks}, $code);
+    });
+    return $new_source;
+}
+
 # Skip a few items from the source
 sub skip {
     my ($self, $count) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->chained;
 
-    $self->each(sub {
+    $self->each_while_source(sub {
         my $item = shift;
         $new_source->emit($item) unless $count-- > 0;
-    });
+    }, $new_source);
 
     return $new_source;
 }
@@ -64,13 +85,13 @@ sub skip {
 sub with_index {
     my ($self) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->chained;
 
     my $count = 0;
-    $self->each(sub {
+    $self->each_while_source(sub {
         my $item = shift;
         $new_source->emit([ $item, $count++ ]);
-    });
+    }, $new_source);
 
     return $new_source;
 }
@@ -79,12 +100,12 @@ sub with_index {
 sub map {
     my ($self, $code) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->chained;
 
-    $self->each(sub {
+    $self->each_while_source(sub {
         my $item = shift;
         $new_source->emit($code->($item));
-    });
+    }, $new_source);
 
     return $new_source;
 }
@@ -93,12 +114,12 @@ sub map {
 sub filter {
     my ($self, $code) = @_;
 
-    my $new_source = $self->chained();
+    my $new_source = $self->chained;
 
-    $self->each(sub {
+    $self->each_while_source(sub {
         my $item = shift;
         $new_source->emit($item) if $code->($item);
-    });
+    }, $new_source);
 
     return $new_source;
 }
@@ -110,10 +131,10 @@ sub distinct {
     my $new_source = $self->chained();
 
     my %seen;
-    $self->each(sub {
+    $self->each_while_source(sub {
         my $item = shift;
         $new_source->emit($item) unless $seen{$item}++;
-    });
+    }, $new_source);
 
     return $new_source;
 }
@@ -124,39 +145,103 @@ sub distinct {
 
 # Returns a future which is done when the source is completed
 sub completed {
-    Future->done
+    my $self = shift;
+
+    $self->{completed} //= $self->{new_future}->()
+    ->on_ready(sub {
+        $self->cleanup;
+    });
+
+    return $self->{completed};
 }
 
 # Clean things up after finish
 sub cleanup {
+    my $self = shift;
+
+    $self->{parent}->remove_child($self) if exists $self->{parent};
+
+    $self->{callbacks} = [];
+}
+
+sub remove_child {
+    my ($self, $child) = @_;
+
+    remove_from_array($self->{children}, $child);
+
+    $self->cancel unless $self->{children}->@*;
 }
 
 # Completes the source
 sub finish {
+    my $self = shift;
+
+    $self->completed->done unless $self->completed->is_ready;
 }
 
 # Completes the source
 sub cancel {
+    shift->completed->cancel;
 }
 
 # Take first item from the source
 sub first {
-    shift
+    my ($self, $code) = @_;
+
+    my $new_source = $self->chained();
+
+    $self->each_while_source(sub {
+        $new_source->emit(shift);
+        $new_source->finish;
+    }, $new_source);
+
+    return $new_source;
 }
 
 # Returns all items as a list
 sub as_list {
-    Future->done
+    my ($self, $code) = @_;
+
+    my $new_source = $self->chained();
+
+    my @items;
+    $self->each_while_source(sub {
+        push @items, shift;
+    }, $new_source);
+
+    return $self->completed->transform(done => sub { @items });
 }
 
 # Take n items from the source
 sub take {
-    shift
+    my ($self, $count) = @_;
+
+    my $new_source = $self->chained();
+
+    my @items;
+    $self->each_while_source(sub {
+        $new_source->emit(shift);
+        return if --$count > 0;
+        $new_source->finish;
+    }, $new_source);
+
+    return $new_source;
 }
 
 # Count the numbers received
 sub count {
-    shift
+    my $self = shift;
+
+    my $new_source = $self->chained();
+
+    my $count;
+    $self->each_while_source(sub {
+        ++$count;
+    }, $new_source, cleanup => sub {
+        $new_source->emit($count);
+    });
+
+    return $new_source;
 }
 
 # nevermind this, we will use it later (instead of extract_by)

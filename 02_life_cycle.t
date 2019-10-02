@@ -70,16 +70,6 @@ subtest 'When parents are finished, children continue living' => async sub {
     is $child->completed->state, 'pending', 'child is finished';
 };
 
-subtest 'When all children are finished the parent source is cancelled' => async sub {
-    my $parent = create_source();
-
-    my $child = $parent->chained(label => 'child');
-
-    $child->finish;
-
-    is $parent->completed->state, 'cancelled', 'parent is cancelled';
-};
-
 subtest 'A child which is bound to the parent output is finished when parent finishes' => async sub {
     my $parent = create_source();
 
@@ -98,6 +88,16 @@ subtest 'A child which is bound to the parent output is cancelled when parent is
     $parent->cancel;
 
     is $child->completed->state, 'cancelled', 'child is cancelled';
+};
+
+subtest 'When all children are finished the parent source is cancelled' => async sub {
+    my $parent = create_source();
+
+    my $child = $parent->chained(label => 'child');
+
+    $child->finish;
+
+    is $parent->completed->state, 'cancelled', 'parent is cancelled';
 };
 
 done_testing();
