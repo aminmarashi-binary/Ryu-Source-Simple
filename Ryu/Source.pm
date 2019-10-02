@@ -18,10 +18,13 @@ sub new {
 }
 
 # Create a new instance of source, mostly used internally
-sub create_source {
+sub chained {
     my ($self, %args) = @_;
 
-    my $new_source = __PACKAGE__->new(%args);
+    my $new_source = __PACKAGE__->new(
+        new_future => $self->{new_future},
+        %args,
+    );
 
     return $new_source;
 }
@@ -47,7 +50,7 @@ sub each {
 sub skip {
     my ($self, $count) = @_;
 
-    my $new_source = $self->create_source();
+    my $new_source = $self->chained();
 
     $self->each(sub {
         my $item = shift;
@@ -61,7 +64,7 @@ sub skip {
 sub with_index {
     my ($self) = @_;
 
-    my $new_source = $self->create_source();
+    my $new_source = $self->chained();
 
     my $count = 0;
     $self->each(sub {
@@ -76,7 +79,7 @@ sub with_index {
 sub map {
     my ($self, $code) = @_;
 
-    my $new_source = $self->create_source();
+    my $new_source = $self->chained();
 
     $self->each(sub {
         my $item = shift;
@@ -90,7 +93,7 @@ sub map {
 sub filter {
     my ($self, $code) = @_;
 
-    my $new_source = $self->create_source();
+    my $new_source = $self->chained();
 
     $self->each(sub {
         my $item = shift;
@@ -104,7 +107,7 @@ sub filter {
 sub distinct {
     my ($self, $code) = @_;
 
-    my $new_source = $self->create_source();
+    my $new_source = $self->chained();
 
     my %seen;
     $self->each(sub {
@@ -125,6 +128,7 @@ sub new_future {
 
 # Returns a future which is done when the source is completed
 sub completed {
+    Future->done
 }
 
 # Clean things up after finish
@@ -135,20 +139,28 @@ sub cleanup {
 sub finish {
 }
 
+# Completes the source
+sub cancel {
+}
+
 # Take first item from the source
 sub first {
+    shift
 }
 
 # Returns all items as a list
 sub as_list {
+    Future->done
 }
 
 # Take n items from the source
 sub take {
+    shift
 }
 
 # Count the numbers received
 sub count {
+    shift
 }
 
 1;
