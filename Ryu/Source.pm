@@ -15,7 +15,7 @@ sub new {
     # Required to make the source finished (not covered in the first session)
     die 'Please pass the new_future function' unless defined $args{new_future};
 
-    my $self = { callbacks => [], %args };
+    my $self = { callbacks => [], children => [], %args };
     return bless $self, $class;
 }
 
@@ -29,11 +29,11 @@ sub chained {
         %args,
     );
 
-    Scalar::Util::weaken($new_source->{parent});    
+    Scalar::Util::weaken($new_source->{parent});
 
-    push $self->{children}->@*, $new_source;
+    Scalar::Util::weaken(my $weak_ref = $new_source);
 
-    return $new_source;
+    return $weak_ref;
 }
 
 # Emit new items to the source
@@ -64,6 +64,7 @@ sub each_while_source {
         $completed->on_ready($new_source->completed);
         remove_from_array($self->{callbacks}, $code);
     });
+
     return $new_source;
 }
 
@@ -248,7 +249,7 @@ sub count {
 sub remove_from_array {
     my ($array, $item) = @_;
 
-    if ($array->@*) {
+    if (ref($array) eq 'ARRAY' and $array->@*) {
         for my $i (0..$array->$#*) {
             if ($array->[$i] == $item) {
                 return splice $array->@*, $i, 1;
