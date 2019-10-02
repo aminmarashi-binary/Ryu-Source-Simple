@@ -122,10 +122,6 @@ sub distinct {
 # Need `completed` implementation. Will talk about them in the next session #
 #############################################################################
 
-# create a new future using the function in Ryu::Async
-sub new_future {
-}
-
 # Returns a future which is done when the source is completed
 sub completed {
     Future->done
