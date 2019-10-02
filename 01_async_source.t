@@ -152,5 +152,40 @@ subtest 'Combined sources work two each' => async sub {
     ], 'Make me pass';
 };
 
+###################
+# Some more tests #
+###################
+
+subtest 'We can take some items from the source' => async sub {
+    my $source = create_source();
+
+    $loop->later(sub { $source->emit($_) for 1..5 });
+
+    my @items = await $source->take(2)->as_list;
+
+    is_deeply \@items, [1, 2], '1 and 2 are received';
+};
+
+subtest 'Count the items received' => async sub {
+    my $source = create_source();
+
+    $loop->later(sub { $source->emit($_) for 1..5 });
+
+    my ($count) = await $source->take(3)->count->as_list;
+
+    is $count, 3, 'Count matches the item taken from the source';
+};
+
+subtest 'Count the items received' => async sub {
+    my $source = create_source();
+
+    $loop->later(sub { $source->emit($_) for 1..5 });
+
+    my ($count) = await $source->take(3)->count->as_list;
+
+    is $count, 3, 'Count matches the item taken from the source';
+};
+
+
 done_testing();
 1;
