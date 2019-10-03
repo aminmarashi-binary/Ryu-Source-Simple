@@ -5,6 +5,7 @@ use warnings;
 no indirect;
 
 use Scalar::Util;
+use curry::weak;
 
 # TODO: Add support for IO::Async::Notifier
 
@@ -58,12 +59,13 @@ sub each_while_source {
 
     $self->each($code);
 
-    $self->completed->on_ready(sub {
-        my $completed = shift;
+    my $new_source_completed = $new_source->completed;
+    $self->completed->on_ready($self->$curry::weak(sub {
+        my ($self, $completed) = @_;
         $options{cleanup}->() if exists $options{cleanup};
-        $completed->on_ready($new_source->completed);
+        $completed->on_ready($new_source_completed);
         remove_from_array($self->{callbacks}, $code);
-    });
+    }));
 
     return $new_source;
 }
@@ -149,9 +151,9 @@ sub completed {
     my $self = shift;
 
     $self->{completed} //= $self->{new_future}->()
-    ->on_ready(sub {
-        $self->cleanup;
-    });
+    ->on_ready($self->$curry::weak(sub {
+        shift->cleanup;
+    }));
 
     return $self->{completed};
 }
